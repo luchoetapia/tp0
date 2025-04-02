@@ -29,10 +29,19 @@ int main(void)
 
 	// Loggeamos el valor de config
 
+	if (config_has_property(config, "CLAVE")) {
+		char* auxConfig = config_get_string_value(config, "CLAVE");
+		log_info(logger, "la clave es: %s", auxConfig);
+	}
+
+	else log_error(logger, "Error al leer el archivo de configuracion");
+
 
 	/* ---------------- LEER DE CONSOLA ---------------- */
 
 	leer_consola(logger);
+
+	log_destroy(logger);
 
 	/*---------------------------------------------------PARTE 3-------------------------------------------------------------*/
 
@@ -54,14 +63,19 @@ int main(void)
 
 t_log* iniciar_logger(void)
 {
-	t_log* nuevo_logger;
+	t_log* nuevo_logger = log_create("tp0.log", "TP0", true, LOG_LEVEL_INFO);
+
+	if (nuevo_logger != NULL)
+		log_info(nuevo_logger, "Hola! Soy un logger!!");
 
 	return nuevo_logger;
 }
 
 t_config* iniciar_config(void)
 {
-	t_config* nuevo_config;
+	t_config* nuevo_config = config_create("cliente.config");
+
+	if (nuevo_config == NULL) abort();
 
 	return nuevo_config;
 }
@@ -70,11 +84,20 @@ void leer_consola(t_log* logger)
 {
 	char* leido;
 
-	// La primera te la dejo de yapa
-	leido = readline("> ");
+	
+	while(true) {
+		// La primera te la dejo de yapa
+		leido = readline("> ");
+		log_info(logger, leido);
 
-	// El resto, las vamos leyendo y logueando hasta recibir un string vacío
+		// El resto, las vamos leyendo y logueando hasta recibir un string vacío	
+		if (!strcmp(leido, "")) {
+			free(leido);
+			break;
+		}
 
+		free(leido);
+	}
 
 	// ¡No te olvides de liberar las lineas antes de regresar!
 
