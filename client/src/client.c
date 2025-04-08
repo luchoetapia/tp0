@@ -28,11 +28,18 @@ int main(void)
 	// dejamos en las variables 'ip', 'puerto' y 'valor'
 
 	// Loggeamos el valor de config
-
 	if (config_has_property(config, "CLAVE")) {
-		char* auxConfig = config_get_string_value(config, "CLAVE");
-		log_info(logger, "la clave es: %s", auxConfig);
+		valor = config_get_string_value(config, "CLAVE");
+		log_info(logger, "la clave es: %s", valor);
 	}
+	if(config_has_property (config, "PUERTO")){
+        puerto = config_get_string_value(config, "PUERTO");
+        log_info(logger,"El valor de PUERTO es: %s", puerto);
+    }
+    if(config_has_property (config, "IP")){
+        ip = config_get_string_value(config, "IP");
+        log_info(logger,"El valor de IP es: %s", ip);
+    }
 
 	else log_error(logger, "Error al leer el archivo de configuracion");
 
@@ -40,17 +47,19 @@ int main(void)
 	/* ---------------- LEER DE CONSOLA ---------------- */
 
 	leer_consola(logger);
-
-	log_destroy(logger);
-
 	/*---------------------------------------------------PARTE 3-------------------------------------------------------------*/
 
 	// ADVERTENCIA: Antes de continuar, tenemos que asegurarnos que el servidor esté corriendo para poder conectarnos a él
 
 	// Creamos una conexión hacia el servidor
 	conexion = crear_conexion(ip, puerto);
-
+	
 	// Enviamos al servidor el valor de CLAVE como mensaje
+	bool res = realizar_handshake(logger, conexion);
+
+	if (res) {
+		enviar_mensaje(valor, conexion);
+	}
 
 	// Armamos y enviamos el paquete
 	paquete(conexion);
@@ -105,19 +114,47 @@ void leer_consola(t_log* logger)
 
 void paquete(int conexion)
 {
-	// Ahora toca lo divertido!
 	char* leido;
-	t_paquete* paquete;
+    t_paquete* paquete = crear_paquete();
 
-	// Leemos y esta vez agregamos las lineas al paquete
+    while (true) {
+        leido = readline("> ");
 
+        if (!strcmp(leido, "")) {
+            free(leido);
+            break;
+        }
 
-	// ¡No te olvides de liberar las líneas y el paquete antes de regresar!
-	
+        agregar_a_paquete(paquete, leido, strlen(leido) + 1);
+        free(leido);
+    }
+
+    enviar_paquete(paquete, conexion); 
+    eliminar_paquete(paquete);
+}
+
+bool realizar_handshake(t_log* logger, int conexion) {
+	size_t bytes;
+	int32_t handshake = 1;
+	int32_t result;
+
+	bytes = send(conexion, &handshake, sizeof(int32_t), 0);
+	bytes = recv(conexion, &result, sizeof(int32_t), MSG_WAITALL);
+
+	if (result == 0) {
+		log_info(logger, "Handshake exitoso");
+		return true;
+	}
+
+	else {
+		log_error(logger, "Error en el handshake");
+		return false;
+	}
 }
 
 void terminar_programa(int conexion, t_log* logger, t_config* config)
 {
-	/* Y por ultimo, hay que liberar lo que utilizamos (conexion, log y config) 
-	  con las funciones de las commons y del TP mencionadas en el enunciado */
+	config_destroy(config);
+	log_destroy(logger);
+	liberar_conexion(conexion);
 }

@@ -6,6 +6,7 @@ int main(void) {
 	int server_fd = iniciar_servidor();
 	log_info(logger, "Servidor listo para recibir al cliente");
 	int cliente_fd = esperar_cliente(server_fd);
+	recibir_handshake(cliente_fd);
 
 	t_list* lista;
 	while (1) {

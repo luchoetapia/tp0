@@ -4,9 +4,6 @@ t_log* logger;
 
 int iniciar_servidor(void)
 {
-	// Quitar esta línea cuando hayamos terminado de implementar la funcion
-	assert(!"no implementado!");
-
 	int socket_servidor;
 
 	struct addrinfo hints, *servinfo, *p;
@@ -19,10 +16,25 @@ int iniciar_servidor(void)
 	getaddrinfo(NULL, PUERTO, &hints, &servinfo);
 
 	// Creamos el socket de escucha del servidor
+	int escucha = socket(
+		servinfo -> ai_family,
+		servinfo -> ai_socktype,
+		servinfo -> ai_protocol
+	);
 
 	// Asociamos el socket a un puerto
+	setsockopt(
+		escucha, SOL_SOCKET, SO_REUSEPORT, &(int){1}, sizeof(int)
+	);
+
+	bind(
+		escucha, servinfo -> ai_addr, servinfo -> ai_addrlen
+	);
 
 	// Escuchamos las conexiones entrantes
+	listen(escucha, SOMAXCONN);
+
+	socket_servidor = escucha;
 
 	freeaddrinfo(servinfo);
 	log_trace(logger, "Listo para escuchar a mi cliente");
@@ -32,11 +44,10 @@ int iniciar_servidor(void)
 
 int esperar_cliente(int socket_servidor)
 {
-	// Quitar esta línea cuando hayamos terminado de implementar la funcion
-	assert(!"no implementado!");
-
 	// Aceptamos un nuevo cliente
 	int socket_cliente;
+
+	socket_cliente = accept(socket_servidor, NULL, NULL);
 	log_info(logger, "Se conecto un cliente!");
 
 	return socket_cliente;
@@ -93,4 +104,25 @@ t_list* recibir_paquete(int socket_cliente)
 	}
 	free(buffer);
 	return valores;
+}
+
+void recibir_handshake(int cliente) {
+	int32_t handshake;
+	int bytes = recv(
+		cliente,
+		&handshake,
+		sizeof(int32_t),
+		MSG_WAITALL
+	);
+
+	if (bytes <= 0) {
+		log_error(logger, "Fallo al recibir el handshake");
+		exit(EXIT_FAILURE);
+	}
+
+	log_info(logger, "Handshake recibido");
+
+	int32_t respuesta = 0;  // éxito
+    send(cliente, &respuesta, sizeof(int32_t), 0);
+    log_info(logger, "Handshake respondido correctamente");
 }
